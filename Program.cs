@@ -156,6 +156,62 @@ static List<string> Where(string dbPath, string tableName, string columnName, st
     return result;
 }
 
+static (string[] columns, List<string[]> rows) Join(
+    string dbPath, string table1, string table2, string key1, string key2)
+{
+    var rows = new List<string[]>();
+
+    using var connection = new SqliteConnection($"Data Source={dbPath}");
+    connection.Open();
+
+    var cmd = connection.CreateCommand();
+    cmd.CommandText = $"SELECT * FROM {table1} INNER JOIN {table2} ON {table1}.{key1} = {table2}.{key2} ORDER BY 1;";
+
+    using var reader = cmd.ExecuteReader();
+
+    var columns = new string[reader.FieldCount];
+    for (int i = 0; i < reader.FieldCount; i++)
+        columns[i] = reader.GetName(i);
+
+    while (reader.Read())
+    {
+        var row = new string[reader.FieldCount];
+        for (int i = 0; i < reader.FieldCount; i++)
+            row[i] = reader.GetValue(i).ToString();
+        rows.Add(row);
+    }
+    
+    return (columns, rows);
+}
+
+static (string[] columns, List<string[]> rows) GroupAvg(
+    string dbPath, string tableName, string groupColumn, string avgColumn)
+{
+    var rows = new List<string[]>();
+
+    using var connection = new SqliteConnection($"Data Source={dbPath}");
+    connection.Open();
+
+    var cmd = connection.CreateCommand();
+    cmd.CommandText = $"SELECT {groupColumn}, AVG({avgColumn}) AS avg_{avgColumn} FROM {tableName} GROUP BY {groupColumn} ORDER BY 1;";
+
+    using var reader = cmd.ExecuteReader();
+
+    var columns = new string[reader.FieldCount];
+    for (int i = 0; i < reader.FieldCount; i++)
+        columns[i] = reader.GetName(i);
+
+    while (reader.Read())
+    {
+        var row = new string[reader.FieldCount];
+        for (int i = 0; i < reader.FieldCount; i++)
+            row[i] = reader.GetValue(i).ToString();
+        rows.Add(row);
+    }
+    
+    return (columns, rows);
+}
+
 
 
 string dbPath = "developers.db";
@@ -176,4 +232,18 @@ Console.WriteLine("\n=== Разработчики из отдела 2 ===");
 foreach (var dev in developersFromDep2)
     Console.WriteLine(dev);
 
+var (joinColumns, joinRows) = Join(dbPath, "dev", "dep", "dep_id", "dep_id");
+Console.WriteLine("\n=== Результат Join(dev, dep, dep_id, dep_id) ===");
+Console.WriteLine(string.Join(" | ", joinColumns));
+Console.WriteLine(new string('-', 80));
+foreach (var row in joinRows)
+    Console.WriteLine(string.Join(" | ", row));
+
+
+var (avgCols, avgRows) = GroupAvg(dbPath, "dev", "dep_id", "dev_commits");
+Console.WriteLine("\n=== Среднее количество коммитов по отделам ===");
+Console.WriteLine(string.Join(" | ", avgCols));
+Console.WriteLine(new string('-', 40));
+foreach (var row in avgRows)
+    Console.WriteLine(string.Join(" | ", row));
 
