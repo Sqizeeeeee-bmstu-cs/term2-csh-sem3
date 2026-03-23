@@ -227,14 +227,14 @@ static (string[] columns, List<string[]> rows) GroupAvg(
 
 static CsvTable ReadCsv(TextReader reader, char separator)
 {
-    string? headerLine = reader.ReadLine();
+    string headerLine = reader.ReadLine();
     if (headerLine is null)
         throw new InvalidOperationException("Входной поток пуст — нет строки заголовков.");
 
     string[] headers = headerLine.Split(separator);
     var rows = new List<CsvRow>();
 
-    string? line;
+    string line;
     while ((line = reader.ReadLine()) is not null)
     {
         if (string.IsNullOrWhiteSpace(line))
